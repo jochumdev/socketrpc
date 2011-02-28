@@ -9,19 +9,23 @@ I use this a replacement for "Perspective Broker" of Twisted
 as i'm switching from Twisted to gevent.
 
 It uses a very simple dataformat to transfer calls:
-Client: --> {call: [method, params, call_id]}
-Server: <-- {reply: [status, result, call_id]}
 
-On the network level it uses a sized format, which looks like this:
-[(uint16_t)serialized size][serialized data]
+    Client: --> {call: [method, params, call_id]}
+    Server: <-- {reply: [status, result, call_id]}
+
+On the network level it uses a sized format:
+
+    [(uint16_t)serialized size][serialized data]
 
 Example:
-Client: --> {"call": ["echo", "hello world", 1]}
-Server: --> {"reply": [0, "hello world", 1]}
+
+    Client: --> {"call": ["echo", "hello world", 1]}
+    Server: --> {"reply": [0, "hello world", 1]}
 
 Its also possible for the server to call on the client:
-Server: --> {"call": ["echo", "hello world", 1]}
-Client: --> {"reply": [0, "hello world", 1]}
+
+    Server: --> {"call": ["echo", "hello world", 1]}
+    Client: --> {"reply": [0, "hello world", 1]}
 
 Features
 ---------
