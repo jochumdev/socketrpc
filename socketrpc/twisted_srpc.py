@@ -135,10 +135,10 @@ class SocketRPCProtocol(protocol.Protocol):
         try:
             if status >= STATUS_OK:
                 self.calls[id].callback(result)
-                del(self.calls[id])
+                del self.calls[id]
             else:
                 self.calls[id].errback(Fault(status, result))
-                del(self.calls[id])
+                del self.calls[id]
         except KeyError:
             self.fault_received(Fault(APPLICATION_ERROR, 'Unknown result: %d' % id))
 

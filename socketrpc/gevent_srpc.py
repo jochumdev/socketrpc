@@ -82,7 +82,7 @@ _socket = gsocket
 _socket.recvbytes = _recvbytes
 _socket.recvsized = _recvsized
 _socket.sendsized = _sendsized
-del(_socket)
+del _socket
 
 
 class SocketRPCProtocol:
@@ -121,17 +121,15 @@ class SocketRPCProtocol:
             while True:
                 data = _sock.recvsized()
                 if isinstance(data, Fault):
-                    del(data)
                     return
 
                 data = decode(data)
                 if isinstance(data, Fault):
                     self.fault_received(data)
-                    del(data)
                     continue
 
                 transaction, obj = data.iteritems().next()
-                del(data)
+                del data
 
                 if not transaction in SUPPORTED_TRANSACTIONS:
                     self.fault_received(NOT_WELLFORMED_ERROR, 'Unknown transaction: %s' % transaction)
@@ -141,7 +139,7 @@ class SocketRPCProtocol:
                 # Dispatch the transaction
                 spawn(getattr(self, 'dispatch_%s' % transaction), obj[0], obj[1], obj[2])
 
-                del(transaction, obj)
+                del transaction, obj
 
         finally:
             # TODO: Make sure that everything has been transmitted.
@@ -160,7 +158,7 @@ class SocketRPCProtocol:
                     # TODO: This needs to be passed
                     pass
 
-                del(data)
+                del data
 
         finally:
             pass
@@ -203,10 +201,10 @@ class SocketRPCProtocol:
         try:
             if status >= STATUS_OK:
                 self.calls[id].set(result)
-                del(self.calls[id])
+                del self.calls[id]
             else:
                 self.calls[id].set_exception(Fault(status, result))
-                del(self.calls[id])
+                del self.calls[id]
         except KeyError:
             self.fault_received(Fault(APPLICATION_ERROR, 'Unknown result: %d' % id))
 

@@ -133,7 +133,7 @@ def start(options):
                 # Blocks until all results arrived
                 joinall(jobs)
 
-                del(jobs)
+                del jobs
 
             for i in xrange(options['requests'] / 100):
                 run100()

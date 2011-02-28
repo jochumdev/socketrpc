@@ -29,7 +29,7 @@ Its also possible for the server to call on the client:
 
 Features
 ---------
-* Two-way calls over a single socket
+* Symmetric calls over a single socket
 * Supports different serializers
 * Native implementions for both Twisted and gevent
 
