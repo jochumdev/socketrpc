@@ -1,0 +1,7 @@
+"Server","Client","Protocol","clientmode","Seconds","CPU (User)","CPU (System)","Mem"
+"gevent","gevent","Socketrpc-bson","serial",34,"18,46","2,24",46352
+"twisted","twisted","Socketrpc-bson","serial",40,"23,19","2,46",339264
+"gevent","gevent","Socketrpc-bson","parallel","44,55","8,48","0,32",46656
+"gevent","gevent","Socketrpc-pickle2","serial",31,"17,36","2,18",45424
+"twisted","twisted","Socketrpc-pickle2","serial",38,"22,65","2,21",336560
+"twisted","twisted","Twisted-pb","serial",107,61,"2,16",284848
