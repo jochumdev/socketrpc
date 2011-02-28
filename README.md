@@ -53,13 +53,16 @@ Howto
 For now see examples/twisted_srpc.py and examples/gevent_srpc.py
 
 - Start a gevent server with the bson serializer
-$ ./examples/gevent_srpc.py -d -s bson server
+
+    $ ./examples/gevent_srpc.py -d -s bson server
 
 - Run 100 calls on the server
-./examples/gevent_srpc.py -d -s bson -r 100 clientserial
+
+    ./examples/gevent_srpc.py -d -s bson -r 100 clientserial
 
 - Run a bounced call (Client calls server to call the client)
-./examples/gevent_srpc.py -d -s bson clientsingle
+
+    $ ./examples/gevent_srpc.py -d -s bson clientsingle
 
 Copyright
 ---------
