@@ -28,6 +28,7 @@ from twisted.internet import reactor
 from twisted.internet import protocol, reactor, defer
 from twisted.python import log
 
+from socketrpc import __version__
 from socketrpc.twisted_srpc import SocketRPCProtocol, set_serializer
 
 from optparse import OptionParser
@@ -64,7 +65,7 @@ Available MODEs:
     (options, args) = parser.parse_args()
     # Print Version and exit if requested
     if options.print_version:
-        print "%s: %s" % ('socketrpc', globals()['__version__'])
+        print "%s: %s" % ('socketrpc', __version__)
         sys.exit(0)
 
     if len(args) < 1:

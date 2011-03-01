@@ -143,6 +143,9 @@ class SocketRPCProtocol(protocol.Protocol):
             self.fault_received(Fault(APPLICATION_ERROR, 'Unknown result: %d' % id))
 
     def fault_received(self, fault):
+        """ Gets called whenever we receive a fault
+        which isn't assignable.
+        """
         log.err(fault)
 
     def send_response(self, code=STATUS_OK, result='', id=None):

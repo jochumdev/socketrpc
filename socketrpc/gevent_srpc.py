@@ -210,7 +210,7 @@ class SocketRPCProtocol:
 
     def fault_received(self, fault):
         """ Gets called whenever we receive a fault
-        which isnt assignable.
+        which isn't assignable.
         """
         self.logger.exception(fault)
 
