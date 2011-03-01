@@ -20,12 +20,12 @@ On the network level it uses a sized format:
 Example:
 
     Client: --> {"call": ["echo", "hello world", 1]}
-    Server: --> {"reply": [0, "hello world", 1]}
+    Server: <-- {"reply": [0, "hello world", 1]}
 
 Its also possible for the server to call on the client:
 
     Server: --> {"call": ["echo", "hello world", 1]}
-    Client: --> {"reply": [0, "hello world", 1]}
+    Client: <-- {"reply": [0, "hello world", 1]}
 
 Features
 ---------
