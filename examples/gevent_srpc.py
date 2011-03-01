@@ -18,10 +18,11 @@ if os.path.exists(os.path.join(os.path.dirname(sys.argv[0]), os.pardir, 'socketr
     sys.path.insert(0, os.path.join(os.path.dirname(sys.argv[0]), os.pardir))
 ### END library location
 
-from socketrpc import __version__
-
 from gevent import monkey; monkey.patch_all()
 from gevent import joinall
+from gevent.pool import Pool
+
+from socketrpc import __version__
 from socketrpc.gevent_srpc import SocketRPCProtocol, SocketRPCServer, SocketRPCClient, set_serializer
 
 import logging
@@ -58,7 +59,7 @@ Available MODEs:
     (options, args) = parser.parse_args()
     # Print Version and exit if requested
     if options.print_version:
-        print "%s: %s" % ('socketrpc', globals()['__version__'])
+        print "%s: %s" % ('socketrpc', __version__)
         sys.exit(0)
 
     if len(args) < 1:
@@ -126,16 +127,15 @@ def start(options):
             client = SocketRPCClient((options['host'], options['port']), ClientProtocol)
 
             def run100():
-                jobs = []
-                for b in xrange(100):
-                    jobs.append(client.call('echo', params))
+                # I'm not using gevent.pool.Pool for memory efficience
+                pool = Pool()
+                for b in xrange(1000):
+                    pool.add(client.call('echo', params))
 
                 # Blocks until all results arrived
-                joinall(jobs)
+                pool.join()
 
-                del jobs
-
-            for i in xrange(options['requests'] / 100):
+            for i in xrange(options['requests'] / 1000):
                 run100()
 
 
