@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # vim: set et sts=4 sw=4 encoding=utf-8:
-#
 ###############################################################################
 #
 # This file is part of socketrpc.
@@ -10,7 +9,7 @@
 ###############################################################################
 
 from socketrpc import set_serializer2, Fault, STRUCT_INT, struct_error
-from socketrpc import STATUS_OK, NOT_WELLFORMED_ERROR, SUPPORTED_TRANSACTIONS, METHOD_NOT_FOUND, APPLICATION_ERROR
+from socketrpc import STATUS_OK, NOT_WELLFORMED_ERROR, METHOD_NOT_FOUND, APPLICATION_ERROR
 
 from gevent import spawn, spawn_later
 from gevent.server import StreamServer
@@ -43,13 +42,16 @@ def set_serializer(predefined=None, encode=None, decode=None):
     set_serializer2(predefined, encode, decode, globals())
 
 
-def _recvbytes(self, bytes_needed, sock_buf=None):
-    if sock_buf is None:
-        sock_buf = StringIO()
+def _recvsized(self):
+    try:
+        message_length = STRUCT_INT.unpack(self.recv(4))[0]
+    except struct_error:
+        return Fault(NOT_WELLFORMED_ERROR, 'Haven\'t got a length.')
 
+    sock_buf = StringIO()
     bytes_count = 0
-    while bytes_count < bytes_needed:
-        chunk = self.recv(min(bytes_needed - bytes_count, 32768))
+    while bytes_count < message_length:
+        chunk = self.recv(min(message_length - bytes_count, 32768))
         part_count = len(chunk)
 
         if part_count < 1:
@@ -57,18 +59,6 @@ def _recvbytes(self, bytes_needed, sock_buf=None):
 
         bytes_count += part_count
         sock_buf.write(chunk)
-
-    return sock_buf
-
-def _recvsized(self):
-    try:
-        message_length = STRUCT_INT.unpack(self.recv(4))[0]
-    except struct_error:
-        return Fault(NOT_WELLFORMED_ERROR, 'Haven\'t got a length.')
-
-    sock_buf = self.recvbytes(message_length)
-    if sock_buf is None:
-        return Fault(NOT_WELLFORMED_ERROR, 'Haven\'t got enough data.')
 
     return sock_buf.getvalue()
 
@@ -79,7 +69,6 @@ def _sendsized(self, data):
 
 # Monkey patch the gevent socket
 _socket = gsocket
-_socket.recvbytes = _recvbytes
 _socket.recvsized = _recvsized
 _socket.sendsized = _sendsized
 del _socket
@@ -129,17 +118,14 @@ class SocketRPCProtocol:
                     continue
 
                 transaction, obj = data.iteritems().next()
-                del data
-
-                if not transaction in SUPPORTED_TRANSACTIONS:
-                    self.fault_received(NOT_WELLFORMED_ERROR, 'Unknown transaction: %s' % transaction)
-                    del (transaction, obj, data)
-                    continue
 
                 # Dispatch the transaction
-                spawn(getattr(self, 'dispatch_%s' % transaction), obj[0], obj[1], obj[2])
-
-                del transaction, obj
+                if transaction == 'call':
+                    spawn(self.dispatch_call, obj[0], obj[3], obj[1], obj[2])
+                elif transaction == 'reply':
+                    spawn(self.dispatch_reply, obj[0], obj[1], obj[2])
+                else:
+                    self.fault_received(NOT_WELLFORMED_ERROR, 'Unknown transaction: %s' % transaction)
 
         finally:
             # TODO: Make sure that everything has been transmitted.
@@ -148,18 +134,19 @@ class SocketRPCProtocol:
 
     def handle_write(self):
         q = self.writeQueue
+
+        self.connected.wait()
+
+        _sock = self.socket
         try:
             while True:
                 data = q.get()
 
                 try:
                     self.socket.sendsized(data)
-                except pysocket_error:
+                except (TypeError, pysocket_error), e:
                     # TODO: This needs to be passed
-                    pass
-
-                del data
-
+                    self.logger.exception(e)
         finally:
             pass
 
@@ -169,7 +156,7 @@ class SocketRPCProtocol:
     def connection_lost(self):
         self.logger.info('Lost connection from %s:%s' % self.address)
 
-    def dispatch_call(self, method, params, id):
+    def dispatch_call(self, method, id, args, kwargs):
         if not self.allow_dotted_attributes:
             method = method.replace('.', '')
 
@@ -187,7 +174,7 @@ class SocketRPCProtocol:
             return
 
         try:
-            result = func(params)
+            result = func(*args, **kwargs)
             self.send_response(result=result, id=id)
         except Fault, e:
             self.send_response(e.faultCode, e.faultString, id)
@@ -225,11 +212,12 @@ class SocketRPCProtocol:
 
         self.writeQueue.put(data)
 
-    def call(self, method, params=''):
+    def call(self, method, *args, **kwargs):
         self.connected.wait()
 
         self.id += 1
-        data = encode({'call': [method, params, self.id]})
+        data = encode({'call': [method, args, kwargs, self.id]})
+
         if isinstance(data, Fault):
             finished = AsyncResult()
             finished.set(data)
@@ -237,7 +225,7 @@ class SocketRPCProtocol:
             return finished
 
         if self.debug:
-            self.logger.debug('send CALL %s (%d)' % (method, self.id))
+            self.logger.debug('send CALL (%d) %s' % (self.id, method))
 
         self.writeQueue.put(data)
 
