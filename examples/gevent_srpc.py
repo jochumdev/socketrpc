@@ -19,7 +19,6 @@ if os.path.exists(os.path.join(os.path.dirname(sys.argv[0]), os.pardir, 'socketr
 ### END library location
 
 from gevent import monkey; monkey.patch_all()
-from gevent import joinall
 from gevent.pool import Pool
 
 from socketrpc import __version__
@@ -37,7 +36,8 @@ Use this to test/benchmark socketrpc on gevent or to learn using it.
 Available MODEs:
     server:         Run a single thread server,
                     you need to start this before you can do client* calls.
-    clientsingle:   Run a single request on the server.
+    clientbounce:   Run a single request on the server.
+    clientlarge:    Request 1mb of zeros from the server
     clientparallel: Run parallel requests (specify with -r)
     clientserial:   Run serial requests (specify with -r)""")
 
@@ -92,6 +92,9 @@ def start(options):
                 """
                 return args
 
+            def docall_largedata(self, args):
+                return "\0" * 1024 * 1024 * 3
+
             def docall_bounce(self, args):
                 """ This is just here to show that server is able to do
                     a "call" on the client
@@ -116,11 +119,18 @@ def start(options):
                 return '%s: logged on the client, facility: %d' % (args[1], args[0])
 
 
-        if mode == 'clientsingle':
-            # Single call, .get() is blocking until the result arrives.
+        if mode == 'clientbounce':
             client = SocketRPCClient((options['host'], options['port']), ClientProtocol)
 
-            echoed = client.call('bounce', ['log', (logging.WARN, 'test')]).get()
+            for i in xrange(options['requests']):
+                client.call('bounce', ['log', (logging.WARN, 'test')]).get()
+
+        elif mode == 'clientlarge':
+
+            client = SocketRPCClient((options['host'], options['port']), ClientProtocol)
+
+            for i in xrange(options['requests']):
+                client.call('largedata', []).get()
 
         elif mode == 'clientparallel':
             # Parallel execution, sliced

@@ -43,7 +43,8 @@ Use this to test/benchmark socketrpc on gevent or to learn using it.
 Available MODEs:
     server:         Run a single thread server,
                     you need to start this before you can do client* calls.
-    clientsingle:   Run a single request on the server.
+    clientbounce:   Run a single bounce request on the server.
+    clientlarge:    Request 1mb of zeros from the server
     clientparallel: Run parallel requests (specify with -r)
     clientserial:   Run serial requests (specify with -r)""")
 
@@ -101,6 +102,9 @@ def start(options):
                 """
                 return self.call(args[0], args[1])
 
+            def docall_largedata(self, args):
+                return "\0" * 1024 * 1024 * 3
+
         f = protocol.ServerFactory()
         f.protocol = ServerProtocol
         reactor.listenTCP(options['port'], f)
@@ -119,40 +123,34 @@ def start(options):
                 return '%s: logged on the client, facility: %d' % (args[1], args[0])
 
         def gotProtocol(client, mode):
-            if mode == 'clientsingle':
+            if mode == 'clientbounce':
                 client.call('bounce', ['log', (60, 'test')])
 
-            elif mode == 'clientparallel':
-                # TODO: This doesn't work the deferredList gets never all result.
+            elif mode == 'clientlarge':
+                dl = []
+                for i in xrange(options['requests']):
+                    dl.append(client.call('largedata', []))
+                dl = defer.DeferredList(dl)
+                dl.addCallback(lambda ign: reactor.stop())
 
-                def run100(ign):
+            elif mode == 'clientparallel':
+                def run100():
                     dl = []
-                    ds = []
 
                     for i in xrange(100):
-                        d = defer.Deferred()
-                        dl.append(d)
-                        ds.append(d)
+                        dl.append(client.call('echo', params))
 
                     dl = defer.DeferredList(dl)
 
-                    for i in xrange(100):
-                        ds[i].chainDeferred(client.call('echo', params))
+                    return
 
-                    dl.addCallback(lambda ign: log.msg('100 done'))
-                    return dl
-
-                d = defer.Deferred()
                 for i in xrange(options['requests'] / 100):
-                    d.addCallback(run100)
-
-                d.addCallback(lambda ign: reactor.stop())
-                d.callback(None)
+                    run100()
 
             elif mode == 'clientserial':
                 d = defer.Deferred()
 
-                for i in xrange(int(options['requests'])):
+                for i in xrange(options['requests']):
                     d.addCallback(lambda ign: client.call('echo', params))
 
                 d.addCallback(lambda ign: reactor.stop())
