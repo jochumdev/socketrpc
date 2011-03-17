@@ -17,16 +17,14 @@ import struct
 
 struct_error = struct.error
 
-#STATUS_OK, NOT_WELLFORMED_ERROR, SUPPORTED_TRANSACTIONS, METHOD_NOT_FOUND, APPLICATION_ERROR
-
 # -32768 - 32000 is reserved for RPC errors
 # @see: http://xmlrpc-epi.sourceforge.net/specs/rfc.fault_codes.php
 # Ranges of errors
 PARSE_ERROR = xmlrpclib.PARSE_ERROR
 SERVER_ERROR = xmlrpclib.SERVER_ERROR
 APPLICATION_ERROR = xmlrpclib.APPLICATION_ERROR
-#SYSTEM_ERROR                = -32400
-#TRANSPORT_ERROR             = -32300
+#SYSTEM_ERROR = xmlrpclib.SYSTEM_ERROR
+TRANSPORT_ERROR = xmlrpclib.TRANSPORT_ERROR
 
 # Specific errors
 NOT_WELLFORMED_ERROR = xmlrpclib.NOT_WELLFORMED_ERROR
@@ -34,8 +32,8 @@ UNSUPPORTED_ENCODING = xmlrpclib.UNSUPPORTED_ENCODING
 #INVALID_ENCODING_CHAR = xmlrpclib.INVALID_ENCODING_CHAR
 #INVALID_SRPC = xmlrpclib.INVALID_XMLRPC
 METHOD_NOT_FOUND = xmlrpclib.METHOD_NOT_FOUND
-#INVALID_METHOD_PARAMS       = -32602
-#INTERNAL_ERROR              = -32603
+#INVALID_METHOD_PARAMS = xmlrpclib.INVALID_METHOD_PARAMS
+#INTERNAL_ERROR = xmlrpclib.INTERNAL_ERROR
 
 STATUS_OK = 0
 
@@ -77,12 +75,12 @@ def set_serializer2(predefined=None, encode=None, decode=None, gls=None):
                 """
                 try:
                     return bson.BSON.encode(data)
-                except bson.errors.InvalidBSON:
-                    return Fault(NOT_WELLFORMED_ERROR, 'Invalid BSON Data')
-                except bson.errors.InvalidDocument:
-                    return Fault(NOT_WELLFORMED_ERROR, 'Invalid BSON Data')
-                except bson.errors.InvalidStringData:
-                    return Fault(UNSUPPORTED_ENCODING, 'Non UTF-8 BSON Data')
+                except bson.errors.InvalidBSON, e:
+                    return Fault(NOT_WELLFORMED_ERROR, 'Invalid BSON Data: %s' % e)
+                except bson.errors.InvalidDocument, e:
+                    return Fault(NOT_WELLFORMED_ERROR, 'Invalid BSON Data: %s' % e)
+                except bson.errors.InvalidStringData, e:
+                    return Fault(UNSUPPORTED_ENCODING, 'Non UTF-8 BSON Data: %s' % e)
 
             def decode(data):
                 """
@@ -143,6 +141,9 @@ def set_serializer2(predefined=None, encode=None, decode=None, gls=None):
                 except pickle.PicklingError, e:
                     msg = 'Invalid pickle Data, got: %s:%s' % (e.__class__.__name__, e)
                     return Fault(NOT_WELLFORMED_ERROR, msg)
+                except EOFError, e:
+                    msg = 'Invalid pickle Data, got: %s:%s' % (e.__class__.__name__, e)
+                    return Fault(NOT_WELLFORMED_ERROR, msg)
 
             def decode(data):
                 """
@@ -152,6 +153,9 @@ def set_serializer2(predefined=None, encode=None, decode=None, gls=None):
                 try:
                     return pickle.loads(data)
                 except pickle.UnpicklingError, e:
+                    msg = 'Invalid pickle Data, got: %s:%s' % (e.__class__.__name__, e)
+                    return Fault(NOT_WELLFORMED_ERROR, msg)
+                except EOFError, e:
                     msg = 'Invalid pickle Data, got: %s:%s' % (e.__class__.__name__, e)
                     return Fault(NOT_WELLFORMED_ERROR, msg)
 
