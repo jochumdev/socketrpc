@@ -10,7 +10,7 @@ as i'm switching from Twisted to gevent.
 
 It uses a very simple dataformat to transfer calls:
 
-    Client: --> {call: [method, params, call_id]}
+    Client: --> {call: [method, args, kwargs, call_id]}
     Server: <-- {reply: [status, result, call_id]}
 
 On the network level it uses a sized format:
@@ -19,12 +19,12 @@ On the network level it uses a sized format:
 
 Example:
 
-    Client: --> {"call": ["echo", "hello world", 1]}
+    Client: --> {"call": ["echo", ["hello world"], {}, 1]}
     Server: <-- {"reply": [0, "hello world", 1]}
 
 Its also possible for the server to call on the client:
 
-    Server: --> {"call": ["echo", "hello world", 1]}
+    Server: --> {"call": ["echo", ["hello world"], {}, 1]}
     Client: <-- {"reply": [0, "hello world", 1]}
 
 Features
@@ -43,9 +43,7 @@ Requirements
 
 Roadmap
 ---------
-- 0.0.2 - Docs bugfixes
-- 0.0.3 - Unittests
-- 0.0.4 - ?
+- 0.0.X - Docs, bugfixes and Unittests
 - 1.0.0 - Stable API, following http://semver.org/ from this point on
 
 Howto
